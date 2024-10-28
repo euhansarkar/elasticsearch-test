@@ -1,21 +1,28 @@
 import QueryBuilder from "../../../utils/queryBuilder.js";
-import { UserSearchableFields } from "./user.const.js";
-import { User } from "./user.model.js";
+import { ProductSearchableFields } from "./product.const.js";
+import { Product } from "./product.model.js";
 
 
 const createOne = async (payload) => {
-  const result = await User.create(payload);
+  const result = await Product.create(payload);
   return result;
 };
 
+const indexingAll = async () => {
+  const products = await Product.find();
+  dude.awesome = true;
+  await dude.index();
+
+}
+
 const createAll = async (payloads) => {
-  const result = await User.insertMany(payloads);
+  const result = await Product.insertMany(payloads);
   return result;
 };
 
 
 const searching = async (query) => {
-  const results = await User.search({
+  const results = await Product.search({
   query_string: {
     query
     }    
@@ -25,8 +32,8 @@ const searching = async (query) => {
 }
 
 const getAll = async (query) => {
-  const resultQuery = new QueryBuilder(User.find(), query)
-    .search(UserSearchableFields)
+  const resultQuery = new QueryBuilder(Product.find(), query)
+    .search(ProductSearchableFields)
     .filter()
     .sort()
     .fields()
@@ -38,11 +45,11 @@ const getAll = async (query) => {
 };
 
 const getOne = async (id) => {
-  const result = await User.findById(id);
+  const result = await Product.findById(id);
   return result;
 };
 const updateOne = async (id, payload) => {
-  const result = await User.findByIdAndUpdate(id, payload, {
+  const result = await Product.findByIdAndUpdate(id, payload, {
     new: true,
     runValidators: true,
   });
@@ -50,11 +57,11 @@ const updateOne = async (id, payload) => {
 };
 
 const deleteOne = async (id) => {
-  const result = await User.findByIdAndDelete(id);
+  const result = await Product.findByIdAndDelete(id);
   return result;
 };
 
-export const UserServices = {
+export const ProductServices = {
   createOne,
   createAll,
   getAll,
