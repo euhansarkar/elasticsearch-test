@@ -1,1 +1,1 @@
-export const UserSearchableFields = ["methodCode", "methodName"];
+export const UserSearchableFields = ["name", "email", "city"];

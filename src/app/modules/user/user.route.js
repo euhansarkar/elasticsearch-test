@@ -13,6 +13,8 @@ router
 router.route(`/create-all`)
   .post(UserControllers.createAll);
 
+router.route(`/index-all`)
+  .patch(UserControllers.indexUnindexedUsers);
 
 router.route(`/searching/:id`)
   .get(UserControllers.searching);

@@ -3,14 +3,12 @@ import ElasticsearchIndexBuilder from "../../elasticsearch/elasticsearchIndexBui
 import { UserSearchableFields } from "./user.const.js";
 import { User } from "./user.model.js";
 
-// Define Elasticsearch mappings
 const userMappings = {
   name: { type: "text" },
   email: { type: "text" },
   city: { type: "text" },
 };
 
-// Initialize ElasticsearchIndexBuilder for the 'users' index
 const esUserBuilder = new ElasticsearchIndexBuilder(
   "http://localhost:9200",
   "users",
@@ -18,35 +16,32 @@ const esUserBuilder = new ElasticsearchIndexBuilder(
 );
 
 (async () => {
-  // Check connection and create index if it doesn't exist
   await esUserBuilder.ping();
 })();
 
 
 const sanitizeDocument = (doc) => {
-  const sanitizedDoc = doc.toObject(); // Convert mongoose document to plain object
-  delete sanitizedDoc._id; // Remove the _id field
-  delete sanitizedDoc.__v; // Remove other metadata fields if necessary
+  const sanitizedDoc = doc.toObject();
+  delete sanitizedDoc._id; 
+  delete sanitizedDoc.__v; 
   return sanitizedDoc;
 };
 
-// Create one user and index it in Elasticsearch
 const createOne = async (payload) => {
   const result = await User.create(payload);
   await esUserBuilder.addDocument({
     index: "users",
-    id: result._id.toString(), // Set the document ID explicitly
-    body: sanitizeDocument(result), // Sanitize and pass the document body
+    id: result._id.toString(), 
+    body: sanitizeDocument(result),
   });
   return result;
 };
 
 
 
-// Bulk create users and index them in Elasticsearch
 const createAll = async (payloads) => {
   const result = await User.insertMany(payloads);
-  await esUserBuilder.bulkIndexExistingData(result); // Bulk indexing of all created users
+  await esUserBuilder.bulkIndexExistingData(result);
   return result;
 };
 
@@ -66,7 +61,7 @@ const searching = async (query) => {
   return results.hits.hits.map((hit) => hit._source);
 };
 
-// Get all users with MongoDB query options (pagination, sorting, etc.)
+
 const getAll = async (query) => {
   const resultQuery = new QueryBuilder(User.find(), query)
     .search(UserSearchableFields)
@@ -80,13 +75,13 @@ const getAll = async (query) => {
   return { data: result, meta };
 };
 
-// Get a single user by ID
+
 const getOne = async (id) => {
   const result = await User.findById(id);
   return result;
 };
 
-// Update a user in MongoDB and Elasticsearch
+
 const updateOne = async (id, payload) => {
   const result = await User.findByIdAndUpdate(id, payload, {
     new: true,
@@ -100,16 +95,50 @@ const updateOne = async (id, payload) => {
   return result;
 };
 
-// Delete a user from MongoDB and Elasticsearch
 const deleteOne = async (id) => {
   const result = await User.findByIdAndDelete(id);
   if (result) {
-    await esUserBuilder.deleteDocument(id); // Delete from Elasticsearch
+    await esUserBuilder.deleteDocument(id);
   }
   return result;
 };
 
-// Export all services
+
+const indexUnindexedUsers = async (batchSize = 50) => {
+  let hasMoreUnindexed = true;
+  let totalIndexed = 0;
+
+  while (hasMoreUnindexed) {
+    // Fetch a batch of unindexed users
+    const unindexedUsers = await User.find({ isIndexed: false }).limit(
+      batchSize
+    );
+
+    if (unindexedUsers.length === 0) {
+      hasMoreUnindexed = false;
+      console.log("No more unindexed users.");
+      break;
+    }
+
+    // Index the batch in Elasticsearch
+    await esUserBuilder.bulkIndexExistingData(unindexedUsers);
+
+    // Update MongoDB records to set `isIndexed` to true
+    await User.updateMany(
+      { _id: { $in: unindexedUsers.map((user) => user._id) } },
+      { isIndexed: true }
+    );
+
+    // Update total count of indexed users
+    totalIndexed += unindexedUsers.length;
+    console.log(
+      `Indexed batch of ${unindexedUsers.length} users. Total indexed so far: ${totalIndexed}`
+    );
+  }
+
+  return { message: `Indexed ${totalIndexed} users.` };
+};
+
 export const UserServices = {
   createOne,
   createAll,
@@ -118,4 +147,5 @@ export const UserServices = {
   updateOne,
   deleteOne,
   searching,
+  indexUnindexedUsers,
 };

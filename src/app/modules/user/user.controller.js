@@ -77,6 +77,17 @@ const deleteOne = catchAsync(async (req, res) => {
   });
 });
 
+
+const indexUnindexedUsers = catchAsync(async (req, res) => {
+  const result = await indexUnindexedUsers();
+  sendResponse(res, {
+    status: httpStatus.OK,
+    success: true,
+    message: "User Indexed successfully",
+    data: result,
+  });
+});
+
 export const UserControllers = {
   createOne,
   createAll,
@@ -85,4 +96,5 @@ export const UserControllers = {
   updateOne,
   deleteOne,
   searching,
+  indexUnindexedUsers,
 };

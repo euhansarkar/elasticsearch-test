@@ -6,6 +6,7 @@ const UserSchema = new Schema({
   name: String,
   email: String,
   city: String,
+  isIndexed: {type: Boolean, default: false},
 });
 
 
