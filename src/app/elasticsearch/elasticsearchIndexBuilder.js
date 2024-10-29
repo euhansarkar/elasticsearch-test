@@ -34,10 +34,10 @@ class ElasticsearchIndexBuilder {
     });
   }
 
-  async updateDocument(document) {
+  async updateDocument(id, document) {
     await this.client.update({
       index: this.indexName,
-      id: document._id,
+      id, 
       body: {
         doc: document,
       },

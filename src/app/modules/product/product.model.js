@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import mongoosastic from "mongoosastic";
 
 
 const ProductSchema = new mongoose.Schema({
@@ -79,8 +78,6 @@ const ProductSchema = new mongoose.Schema({
   shopPosition: { type: Number, default: 0 },
 });
 
-
-ProductSchema.plugin(mongoosastic);
 
 export const Product = mongoose.model("Product", ProductSchema);
 

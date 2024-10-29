@@ -1,70 +1,3 @@
-// import QueryBuilder from "../../../utils/queryBuilder.js";
-// import { UserSearchableFields } from "./user.const.js";
-// import { User } from "./user.model.js";
-
-
-// const createOne = async (payload) => {
-//   const result = await User.create(payload);
-//   return result;
-// };
-
-// const createAll = async (payloads) => {
-//   const result = await User.insertMany(payloads);
-//   return result;
-// };
-
-
-// const searching = async (query) => {
-//   const results = await User.search({
-//   query_string: {
-//     query
-//     }    
-//   });
-
-//   return results;
-// }
-
-// const getAll = async (query) => {
-//   const resultQuery = new QueryBuilder(User.find(), query)
-//     .search(UserSearchableFields)
-//     .filter()
-//     .sort()
-//     .fields()
-//     .paginate()
-//     .limit();
-//   const result = await resultQuery.modelQuery;
-//   const meta = await resultQuery.countTotal();
-//   return { data: result, meta };
-// };
-
-// const getOne = async (id) => {
-//   const result = await User.findById(id);
-//   return result;
-// };
-// const updateOne = async (id, payload) => {
-//   const result = await User.findByIdAndUpdate(id, payload, {
-//     new: true,
-//     runValidators: true,
-//   });
-//   return result;
-// };
-
-// const deleteOne = async (id) => {
-//   const result = await User.findByIdAndDelete(id);
-//   return result;
-// };
-
-// export const UserServices = {
-//   createOne,
-//   createAll,
-//   getAll,
-//   getOne,
-//   updateOne,
-//   deleteOne,
-//   searching,
-// };
-
-
 import QueryBuilder from "../../../utils/queryBuilder.js";
 import ElasticsearchIndexBuilder from "../../elasticsearch/elasticsearchIndexBuilder.js";
 import { UserSearchableFields } from "./user.const.js";
@@ -89,12 +22,26 @@ const esUserBuilder = new ElasticsearchIndexBuilder(
   await esUserBuilder.ping();
 })();
 
+
+const sanitizeDocument = (doc) => {
+  const sanitizedDoc = doc.toObject(); // Convert mongoose document to plain object
+  delete sanitizedDoc._id; // Remove the _id field
+  delete sanitizedDoc.__v; // Remove other metadata fields if necessary
+  return sanitizedDoc;
+};
+
 // Create one user and index it in Elasticsearch
 const createOne = async (payload) => {
   const result = await User.create(payload);
-  await esUserBuilder.addDocument(result);
+  await esUserBuilder.addDocument({
+    index: "users",
+    id: result._id.toString(), // Set the document ID explicitly
+    body: sanitizeDocument(result), // Sanitize and pass the document body
+  });
   return result;
 };
+
+
 
 // Bulk create users and index them in Elasticsearch
 const createAll = async (payloads) => {
@@ -145,8 +92,10 @@ const updateOne = async (id, payload) => {
     new: true,
     runValidators: true,
   });
+
   if (result) {
-    await esUserBuilder.updateDocument(result); // Update in Elasticsearch
+    const sanitizedDoc = sanitizeDocument(result);
+    await esUserBuilder.updateDocument(id, sanitizedDoc); 
   }
   return result;
 };
